@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Connexion Firebase</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #555;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button.secondary {
+      background: #2196F3;
+    }
+    button.secondary:hover {
+      background: #0b7dda;
+    }
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 4px;
+      display: none;
+    }
+    .result.success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    .result.error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    .result.info {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+    }
+    pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e7f3ff;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Test de Connexion Firebase</h1>
+
+    <div class="status" id="status">
+      <strong>Statut:</strong> Initialisation...
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email:</label>
+      <input type="email" id="email" placeholder="admin@example.com" value="">
+    </div>
+
+    <div class="form-group">
+      <label for="password">Mot de passe:</label>
+      <input type="password" id="password" placeholder="Votre mot de passe">
+    </div>
+
+    <button onclick="testLogin()">Test Connexion</button>
+    <button class="secondary" onclick="checkCurrentUser()">Vérifier Utilisateur Actuel</button>
+    <button class="secondary" onclick="testFirestoreRules()">Test Règles Firestore</button>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js';
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js';
+    import { getFirestore, doc, getDoc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDmfSKep6vYG4r4slwmXGLmdAIEvYnHnIc",
+      authDomain: "ndex236.firebaseapp.com",
+      projectId: "ndex236",
+      storageBucket: "ndex236.firebasestorage.app",
+      messagingSenderId: "413273183972",
+      appId: "1:413273183972:web:3d2258028a5becc14b3ef1",
+      measurementId: "G-WRBD9RCVL3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.auth = auth;
+    window.db = db;
+
+    function showResult(message, type = 'info', details = null) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.className = `result ${type}`;
+      resultDiv.style.display = 'block';
+
+      let html = `<strong>${message}</strong>`;
+      if (details) {
+        html += `<pre>${JSON.stringify(details, null, 2)}</pre>`;
+      }
+      resultDiv.innerHTML = html;
+    }
+
+    window.testLogin = async function() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        showResult('Veuillez entrer un email et un mot de passe', 'error');
+        return;
+      }
+
+      try {
+        showResult('Tentative de connexion...', 'info');
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        showResult('Connexion réussie!', 'success', {
+          uid: user.uid,
+          email: user.email,
+          emailVerified: user.emailVerified
+        });
+
+        // Tenter de récupérer les données Firestore
+        setTimeout(async () => {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+              showResult('Connexion réussie et document Firestore trouvé!', 'success', {
+                auth: {
+                  uid: user.uid,
+                  email: user.email
+                },
+                firestore: userDoc.data()
+              });
+            } else {
+              showResult('Connexion réussie mais AUCUN document Firestore trouvé!', 'error', {
+                auth: {
+                  uid: user.uid,
+                  email: user.email
+                },
+                message: 'Le document users/' + user.uid + ' n\'existe pas dans Firestore'
+              });
+            }
+          } catch (err) {
+            showResult('Connexion réussie mais erreur Firestore', 'error', {
+              auth: {
+                uid: user.uid,
+                email: user.email
+              },
+              firestoreError: err.message
+            });
+          }
+        }, 1000);
+
+      } catch (error) {
+        showResult('Erreur de connexion', 'error', {
+          code: error.code,
+          message: error.message
+        });
+      }
+    };
+
+    window.checkCurrentUser = function() {
+      const user = auth.currentUser;
+      if (user) {
+        showResult('Utilisateur connecté trouvé', 'success', {
+          uid: user.uid,
+          email: user.email,
+          emailVerified: user.emailVerified
+        });
+      } else {
+        showResult('Aucun utilisateur connecté', 'error');
+      }
+    };
+
+    window.testFirestoreRules = async function() {
+      try {
+        showResult('Test des règles Firestore...', 'info');
+
+        // Test 1: Lire le document server_time
+        try {
+          const timeDoc = await getDoc(doc(db, 'site_config', 'server_time'));
+          console.log('✓ Lecture de site_config/server_time OK');
+        } catch (err) {
+          console.log('✗ Erreur lecture de site_config/server_time:', err.message);
+        }
+
+        // Test 2: Lire la collection users
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            console.log('✓ Lecture de users/' + user.uid + ' OK:', userDoc.exists());
+
+            if (userDoc.exists()) {
+              showResult('Règles Firestore OK', 'success', {
+                userDocument: userDoc.data(),
+                message: 'Vous avez accès à votre document utilisateur'
+              });
+            } else {
+              showResult('Document utilisateur manquant!', 'error', {
+                message: 'Votre compte Firebase Auth existe mais le document Firestore n\'existe pas',
+                solution: 'Vous devez créer le document users/' + user.uid + ' dans Firestore'
+              });
+            }
+          } catch (err) {
+            showResult('Erreur Firestore', 'error', {
+              message: err.message,
+              code: err.code
+            });
+          }
+        } else {
+          showResult('Connectez-vous d\'abord', 'error');
+        }
+      } catch (error) {
+        showResult('Erreur test Firestore', 'error', {
+          message: error.message
+        });
+      }
+    };
+
+    // Écouter les changements d'état d'authentification
+    onAuthStateChanged(auth, (user) => {
+      const statusDiv = document.getElementById('status');
+      if (user) {
+        statusDiv.innerHTML = `<strong>Statut:</strong> Connecté en tant que ${user.email}`;
+        statusDiv.style.background = '#d4edda';
+      } else {
+        statusDiv.innerHTML = '<strong>Statut:</strong> Non connecté';
+        statusDiv.style.background = '#f8d7da';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Firestore Connection</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-auth-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1a202c;
+      margin-bottom: 10px;
+    }
+    button {
+      background-color: #3B82F6;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 10px 10px 0;
+    }
+    button:hover {
+      background-color: #2563EB;
+    }
+    button.secondary {
+      background-color: #10B981;
+    }
+    button.secondary:hover {
+      background-color: #059669;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      min-height: 100px;
+    }
+    .success {
+      color: #10B981;
+      font-weight: bold;
+    }
+    .error {
+      color: #EF4444;
+      font-weight: bold;
+    }
+    .info {
+      color: #3B82F6;
+    }
+    .category-card {
+      background: white;
+      border-left: 4px solid #3B82F6;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Test Connexion Firestore</h1>
+    <p style="color: #6b7280; margin-bottom: 20px;">Testez la connexion et les permissions Firestore pour les catégories de produits</p>
+
+    <div>
+      <button onclick="testConnection()">1. Tester Connexion</button>
+      <button onclick="testReadPermissions()">2. Tester Lecture</button>
+      <button onclick="seedCategories()" class="secondary">3. Créer Catégories</button>
+    </div>
+
+    <div id="output">
+      <p style="color: #9ca3af;">Cliquez sur un bouton pour commencer...</p>
+    </div>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDmfSKep6vYG4r4slwmXGLmdAIEvYnHnIc",
+      authDomain: "ndex236.firebaseapp.com",
+      projectId: "ndex236",
+      storageBucket: "ndex236.firebasestorage.app",
+      messagingSenderId: "413273183972",
+      appId: "1:413273183972:web:3d2258028a5becc14b3ef1"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    function log(message, type = 'info') {
+      const output = document.getElementById('output');
+      const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+      output.innerHTML += `<p class="${className}">${message}</p>`;
+      console.log(message);
+    }
+
+    function clearLog() {
+      document.getElementById('output').innerHTML = '';
+    }
+
+    async function testConnection() {
+      clearLog();
+      log('Test de connexion Firestore...', 'info');
+
+      try {
+        // Test basic connection
+        const testDoc = await db.collection('site_config').doc('server_time').get();
+        log('✓ Connexion Firestore établie avec succès!', 'success');
+
+        // Check auth state
+        const user = auth.currentUser;
+        if (user) {
+          log(`✓ Utilisateur connecté: ${user.email}`, 'success');
+
+          // Get user role
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            log(`✓ Rôle utilisateur: ${userData.role}`, 'success');
+          }
+        } else {
+          log('⚠ Aucun utilisateur connecté', 'error');
+          log('Connectez-vous d\'abord sur votre application', 'info');
+        }
+      } catch (error) {
+        log(`✗ Erreur: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    async function testReadPermissions() {
+      clearLog();
+      log('Test des permissions de lecture...', 'info');
+
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          log('✗ Vous devez être connecté pour tester les permissions', 'error');
+          log('Connectez-vous d\'abord sur votre application puis revenez ici', 'info');
+          return;
+        }
+
+        log(`Utilisateur: ${user.email}`, 'info');
+
+        const snapshot = await db.collection('product_categories')
+          .orderBy('name')
+          .get();
+
+        log(`✓ Lecture réussie! ${snapshot.size} catégorie(s) trouvée(s)`, 'success');
+
+        if (snapshot.size > 0) {
+          log('--- Liste des catégories ---', 'info');
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            log(`<div class="category-card">
+              <strong>${data.name}</strong><br>
+              ${data.description || 'Pas de description'}<br>
+              <small>Créée le: ${data.created_at?.toDate?.()?.toLocaleDateString('fr-FR') || 'N/A'}</small>
+            </div>`);
+          });
+        } else {
+          log('Aucune catégorie trouvée. Utilisez le bouton "Créer Catégories".', 'info');
+        }
+      } catch (error) {
+        log(`✗ Erreur de lecture: ${error.message}`, 'error');
+        log('Vérifiez que:', 'info');
+        log('1. Vous êtes connecté avec un compte admin ou manager', 'info');
+        log('2. Les règles Firestore sont déployées', 'info');
+        console.error(error);
+      }
+    }
+
+    async function seedCategories() {
+      clearLog();
+      log('Création des catégories...', 'info');
+
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          log('✗ Vous devez être connecté pour créer des catégories', 'error');
+          return;
+        }
+
+        const categories = [
+          { name: 'Boissons', description: 'Boissons fraîches et chaudes', color: '#3B82F6', icon: '🥤', is_active: true },
+          { name: 'Snacks', description: 'Collations et en-cas', color: '#F59E0B', icon: '🍿', is_active: true },
+          { name: 'Plats', description: 'Plats principaux', color: '#EF4444', icon: '🍽️', is_active: true },
+          { name: 'Desserts', description: 'Pâtisseries et desserts', color: '#EC4899', icon: '🍰', is_active: true },
+          { name: 'Fruits', description: 'Fruits frais', color: '#10B981', icon: '🍎', is_active: true }
+        ];
+
+        for (const category of categories) {
+          const docData = {
+            ...category,
+            created_at: firebase.firestore.FieldValue.serverTimestamp(),
+            updated_at: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          const docRef = await db.collection('product_categories').add(docData);
+          log(`✓ Catégorie "${category.name}" créée (ID: ${docRef.id})`, 'success');
+        }
+
+        log('✓ Toutes les catégories ont été créées avec succès!', 'success');
+        log('Retournez sur votre application pour les voir.', 'info');
+      } catch (error) {
+        log(`✗ Erreur: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Auto-test on load
+    window.addEventListener('load', () => {
+      setTimeout(testConnection, 500);
+    });
+  </script>
+</body>
+</html>

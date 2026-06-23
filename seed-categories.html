@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seed Categories - Firebase</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h1>Seed Categories</h1>
+  <button onclick="seedCategories()">Créer des catégories de test</button>
+  <div id="output"></div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDmfSKep6vYG4r4slwmXGLmdAIEvYnHnIc",
+      authDomain: "ndex236.firebaseapp.com",
+      projectId: "ndex236",
+      storageBucket: "ndex236.firebasestorage.app",
+      messagingSenderId: "413273183972",
+      appId: "1:413273183972:web:3d2258028a5becc14b3ef1"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function seedCategories() {
+      const output = document.getElementById('output');
+      output.innerHTML = '<p>Création des catégories...</p>';
+
+      const categories = [
+        { name: 'Boissons', description: 'Boissons fraîches et chaudes', color: '#3B82F6', icon: '🥤', is_active: true },
+        { name: 'Snacks', description: 'Collations et en-cas', color: '#F59E0B', icon: '🍿', is_active: true },
+        { name: 'Plats', description: 'Plats principaux', color: '#EF4444', icon: '🍽️', is_active: true },
+        { name: 'Desserts', description: 'Pâtisseries et desserts', color: '#EC4899', icon: '🍰', is_active: true },
+        { name: 'Fruits', description: 'Fruits frais', color: '#10B981', icon: '🍎', is_active: true }
+      ];
+
+      try {
+        for (const category of categories) {
+          const docData = {
+            ...category,
+            created_at: firebase.firestore.FieldValue.serverTimestamp(),
+            updated_at: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          const docRef = await db.collection('product_categories').add(docData);
+          output.innerHTML += `<p>✓ Catégorie "${category.name}" créée (ID: ${docRef.id})</p>`;
+        }
+        output.innerHTML += '<p style="color: green; font-weight: bold;">✓ Toutes les catégories ont été créées avec succès!</p>';
+      } catch (error) {
+        output.innerHTML += `<p style="color: red;">Erreur: ${error.message}</p>`;
+        console.error('Error:', error);
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    button {
+      background-color: #3B82F6;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 20px 0;
+    }
+    button:hover {
+      background-color: #2563EB;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #f5f5f5;
+      border-radius: 8px;
+    }
+  </style>
+</body>
+</html>

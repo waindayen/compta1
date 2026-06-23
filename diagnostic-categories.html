@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Diagnostic Catégories - Firebase</title>
+  <meta charset="UTF-8">
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-auth-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 { font-size: 32px; margin-bottom: 10px; }
+    .header p { opacity: 0.9; }
+    .content { padding: 30px; }
+    .section {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+      border-left: 4px solid #3B82F6;
+    }
+    .section h2 {
+      color: #1a202c;
+      margin-bottom: 15px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .buttons {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    button {
+      background: #3B82F6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button:hover { background: #2563EB; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+    button:active { transform: translateY(0); }
+    button.success { background: #10B981; }
+    button.success:hover { background: #059669; }
+    button.danger { background: #EF4444; }
+    button.danger:hover { background: #DC2626; }
+    button:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+    #status {
+      margin-top: 25px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      border: 2px solid #e5e7eb;
+      min-height: 100px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .log { padding: 10px; margin: 5px 0; border-radius: 6px; font-size: 14px; line-height: 1.6; }
+    .log.info { background: #eff6ff; color: #1e40af; border-left: 3px solid #3B82F6; }
+    .log.success { background: #ecfdf5; color: #065f46; border-left: 3px solid #10B981; font-weight: 600; }
+    .log.error { background: #fef2f2; color: #991b1b; border-left: 3px solid #EF4444; font-weight: 600; }
+    .log.warning { background: #fffbeb; color: #92400e; border-left: 3px solid #F59E0B; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .badge.online { background: #d1fae5; color: #065f46; }
+    .badge.offline { background: #fee2e2; color: #991b1b; }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 3px solid #f3f4f6;
+      border-top-color: #3B82F6;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .category-card {
+      background: white;
+      border-left: 4px solid #3B82F6;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .category-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-center;
+      font-size: 24px;
+    }
+    .category-info { flex: 1; }
+    .category-name { font-weight: 700; font-size: 16px; color: #1a202c; margin-bottom: 4px; }
+    .category-desc { color: #6b7280; font-size: 14px; }
+    .step { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .step-number {
+      width: 28px;
+      height: 28px;
+      background: #3B82F6;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 Diagnostic Catégories Firebase</h1>
+      <p>Outil de diagnostic pour déboguer les problèmes de page de catégories</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <h2>
+          <span class="step-number">1</span>
+          État de la connexion
+        </h2>
+        <p style="color: #6b7280; margin-bottom: 15px;">
+          Vérifiez que vous êtes bien connecté et avez les bonnes permissions
+        </p>
+        <div class="buttons">
+          <button onclick="checkAuth()">
+            <span class="spinner" id="spinner-auth" style="display: none;"></span>
+            Vérifier Authentification
+          </button>
+          <button onclick="checkPermissions()" class="success">
+            Vérifier Permissions
+          </button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>
+          <span class="step-number">2</span>
+          Test Firestore
+        </h2>
+        <p style="color: #6b7280; margin-bottom: 15px;">
+          Testez la lecture et l'écriture dans Firebase Firestore
+        </p>
+        <div class="buttons">
+          <button onclick="testFirestore()">
+            Test Connexion Firestore
+          </button>
+          <button onclick="readCategories()" class="success">
+            Lire Catégories
+          </button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>
+          <span class="step-number">3</span>
+          Créer des données de test
+        </h2>
+        <p style="color: #6b7280; margin-bottom: 15px;">
+          Si aucune catégorie n'existe, créez-en pour tester l'affichage
+        </p>
+        <div class="buttons">
+          <button onclick="createTestCategories()" class="success">
+            Créer 5 Catégories
+          </button>
+          <button onclick="deleteAllCategories()" class="danger">
+            Supprimer Toutes
+          </button>
+        </div>
+      </div>
+
+      <div id="status">
+        <p class="log info">🚀 Prêt! Cliquez sur les boutons ci-dessus pour commencer le diagnostic...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDmfSKep6vYG4r4slwmXGLmdAIEvYnHnIc",
+      authDomain: "ndex236.firebaseapp.com",
+      projectId: "ndex236",
+      storageBucket: "ndex236.firebasestorage.app",
+      messagingSenderId: "413273183972",
+      appId: "1:413273183972:web:3d2258028a5becc14b3ef1"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    function log(message, type = 'info') {
+      const status = document.getElementById('status');
+      const log = document.createElement('div');
+      log.className = `log ${type}`;
+      log.innerHTML = message;
+      status.appendChild(log);
+      status.scrollTop = status.scrollHeight;
+      console.log(`[${type}]`, message);
+    }
+
+    function clearLog() {
+      document.getElementById('status').innerHTML = '';
+    }
+
+    async function checkAuth() {
+      clearLog();
+      log('🔍 Vérification de l\'authentification...', 'info');
+
+      const user = auth.currentUser;
+      if (user) {
+        log(`✅ Utilisateur connecté: <strong>${user.email}</strong>`, 'success');
+        log(`📧 UID: ${user.uid}`, 'info');
+        return true;
+      } else {
+        log('❌ Aucun utilisateur connecté', 'error');
+        log('⚠️ <strong>ACTION REQUISE:</strong> Connectez-vous d\'abord sur votre application principale', 'warning');
+        log('📝 Ouvrez votre application dans un autre onglet et connectez-vous en tant qu\'admin', 'info');
+        return false;
+      }
+    }
+
+    async function checkPermissions() {
+      clearLog();
+      log('🔍 Vérification des permissions...', 'info');
+
+      const user = auth.currentUser;
+      if (!user) {
+        log('❌ Vous devez d\'abord vous connecter', 'error');
+        return;
+      }
+
+      try {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          log(`✅ Rôle: <strong>${userData.role}</strong>`, 'success');
+
+          if (userData.role === 'adminuser' || userData.role === 'manageruser') {
+            log('✅ Vous avez les permissions nécessaires!', 'success');
+          } else {
+            log('❌ Vous n\'avez pas les permissions nécessaires', 'error');
+            log('⚠️ Seuls les admins et managers peuvent voir les catégories', 'warning');
+          }
+
+          if (userData.isBlocked) {
+            log('❌ Votre compte est bloqué', 'error');
+          }
+        } else {
+          log('❌ Document utilisateur introuvable', 'error');
+        }
+      } catch (error) {
+        log(`❌ Erreur: ${error.message}`, 'error');
+      }
+    }
+
+    async function testFirestore() {
+      clearLog();
+      log('🔍 Test de connexion Firestore...', 'info');
+
+      try {
+        const testDoc = await db.collection('site_config').doc('server_time').get();
+        log('✅ Connexion Firestore établie!', 'success');
+        log('✅ Firebase fonctionne correctement', 'success');
+      } catch (error) {
+        log(`❌ Erreur Firestore: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    async function readCategories() {
+      clearLog();
+      log('📖 Lecture des catégories...', 'info');
+
+      const user = auth.currentUser;
+      if (!user) {
+        log('❌ Vous devez être connecté', 'error');
+        return;
+      }
+
+      try {
+        const snapshot = await db.collection('product_categories')
+          .orderBy('name')
+          .get();
+
+        log(`✅ Lecture réussie! <strong>${snapshot.size}</strong> catégorie(s) trouvée(s)`, 'success');
+
+        if (snapshot.size > 0) {
+          log('📋 Liste des catégories:', 'info');
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            log(`
+              <div class="category-card" style="border-left-color: ${data.color}">
+                <div class="category-icon" style="background-color: ${data.color}">${data.icon}</div>
+                <div class="category-info">
+                  <div class="category-name">${data.name}</div>
+                  <div class="category-desc">${data.description || 'Pas de description'}</div>
+                </div>
+              </div>
+            `);
+          });
+          log('✅ Si vous voyez les catégories ici, le problème vient de votre application React', 'success');
+          log('💡 Ouvrez la console du navigateur (F12) sur votre application pour voir les erreurs', 'info');
+        } else {
+          log('⚠️ Aucune catégorie trouvée', 'warning');
+          log('💡 Cliquez sur "Créer 5 Catégories" pour ajouter des données de test', 'info');
+        }
+      } catch (error) {
+        log(`❌ Erreur de lecture: ${error.message}`, 'error');
+        log('⚠️ Vérifiez que les règles Firestore sont déployées', 'warning');
+        console.error(error);
+      }
+    }
+
+    async function createTestCategories() {
+      clearLog();
+      log('🎨 Création des catégories de test...', 'info');
+
+      const user = auth.currentUser;
+      if (!user) {
+        log('❌ Vous devez être connecté', 'error');
+        return;
+      }
+
+      const categories = [
+        { name: 'Boissons', description: 'Boissons fraîches et chaudes', color: '#3B82F6', icon: '🥤', is_active: true },
+        { name: 'Snacks', description: 'Collations et en-cas', color: '#F59E0B', icon: '🍿', is_active: true },
+        { name: 'Plats', description: 'Plats principaux', color: '#EF4444', icon: '🍽️', is_active: true },
+        { name: 'Desserts', description: 'Pâtisseries et desserts', color: '#EC4899', icon: '🍰', is_active: true },
+        { name: 'Fruits', description: 'Fruits frais', color: '#10B981', icon: '🍎', is_active: true }
+      ];
+
+      try {
+        for (const category of categories) {
+          const docData = {
+            ...category,
+            created_at: firebase.firestore.FieldValue.serverTimestamp(),
+            updated_at: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          const docRef = await db.collection('product_categories').add(docData);
+          log(`✅ Catégorie "<strong>${category.name}</strong>" créée (ID: ${docRef.id})`, 'success');
+        }
+        log('🎉 Toutes les catégories ont été créées avec succès!', 'success');
+        log('💡 Retournez sur votre application et actualisez la page', 'info');
+      } catch (error) {
+        log(`❌ Erreur: ${error.message}`, 'error');
+        log('⚠️ Vérifiez vos permissions', 'warning');
+        console.error(error);
+      }
+    }
+
+    async function deleteAllCategories() {
+      if (!confirm('⚠️ Voulez-vous vraiment supprimer TOUTES les catégories?')) {
+        return;
+      }
+
+      clearLog();
+      log('🗑️ Suppression des catégories...', 'info');
+
+      try {
+        const snapshot = await db.collection('product_categories').get();
+        let count = 0;
+
+        for (const doc of snapshot.docs) {
+          await doc.ref.delete();
+          count++;
+          log(`✅ Catégorie supprimée (${count}/${snapshot.size})`, 'success');
+        }
+
+        log(`🎉 ${count} catégorie(s) supprimée(s)`, 'success');
+      } catch (error) {
+        log(`❌ Erreur: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        checkAuth();
+      }, 500);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Création Emprunteur</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de Création d'Emprunteur</h1>
+    <div id="status"></div>
+    <div>
+        <button onclick="checkAuth()">Vérifier Authentification</button>
+        <button onclick="testCreate()">Tester Création</button>
+    </div>
+    <div id="results"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmfSKep6vYG4r4slwmXGLmdAIEvYnHnIc",
+            authDomain: "ndex236.firebaseapp.com",
+            projectId: "ndex236",
+            storageBucket: "ndex236.firebasestorage.app",
+            messagingSenderId: "413273183972",
+            appId: "1:413273183972:web:3d2258028a5becc14b3ef1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let userRole = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    userRole = userDoc.data().role;
+                }
+                showStatus(`Connecté en tant que: ${user.email} (${userRole})`, 'success');
+            } else {
+                showStatus('Non connecté - Veuillez vous connecter via l\'application principale', 'error');
+            }
+        });
+
+        window.checkAuth = async () => {
+            const results = document.getElementById('results');
+            if (!currentUser) {
+                results.innerHTML = '<div class="error">Vous devez être connecté pour effectuer ce test</div>';
+                return;
+            }
+
+            try {
+                const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+                const userData = userDoc.data();
+
+                results.innerHTML = `
+                    <h3>Informations Utilisateur:</h3>
+                    <pre>${JSON.stringify({
+                        uid: currentUser.uid,
+                        email: currentUser.email,
+                        role: userData.role,
+                        isBlocked: userData.isBlocked,
+                        status: userData.status
+                    }, null, 2)}</pre>
+                `;
+            } catch (error) {
+                results.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+            }
+        };
+
+        window.testCreate = async () => {
+            const results = document.getElementById('results');
+
+            if (!currentUser) {
+                results.innerHTML = '<div class="error">Vous devez être connecté pour effectuer ce test</div>';
+                return;
+            }
+
+            results.innerHTML = '<div class="info">Test en cours...</div>';
+
+            try {
+                const testData = {
+                    firstName: 'Test',
+                    lastName: 'Utilisateur',
+                    email: 'test@example.com',
+                    phone: '0612345678',
+                    address: '123 Test Street',
+                    idNumber: 'TEST123',
+                    occupation: 'Testeur',
+                    monthlyIncome: 3000,
+                    creditScore: 700,
+                    status: 'active',
+                    createdBy: currentUser.uid,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+
+                console.log('Tentative de création avec les données:', testData);
+
+                const docRef = await addDoc(collection(db, 'borrowers'), testData);
+
+                results.innerHTML = `
+                    <div class="success">Emprunteur créé avec succès!</div>
+                    <h3>ID du document:</h3>
+                    <pre>${docRef.id}</pre>
+                    <h3>Données envoyées:</h3>
+                    <pre>${JSON.stringify(testData, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Erreur complète:', error);
+                results.innerHTML = `
+                    <div class="error">
+                        <h3>Erreur lors de la création:</h3>
+                        <p><strong>Code:</strong> ${error.code}</p>
+                        <p><strong>Message:</strong> ${error.message}</p>
+                    </div>
+                    <h3>Détails de l'erreur:</h3>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+            }
+        };
+
+        function showStatus(message, type) {
+            document.getElementById('status').innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

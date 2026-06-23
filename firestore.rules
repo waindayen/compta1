@@ -1,0 +1,231 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Server time synchronization
+    match /site_config/server_time {
+      allow read, write: if true;
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isUserActive() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBlocked != true &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status != 'blocked';
+    }
+    function isAdmin() {
+      return isUserActive() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'adminuser';
+    }
+
+    function isAgent() {
+      return isUserActive() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agentuser';
+    }
+
+    function isManager() {
+      return isUserActive() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manageruser';
+    }
+
+    // Configuration des cotes
+    match /odds_config/{document} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Bets collection
+    match /bets/{betId} {
+      allow read: if isUserActive() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isUserActive() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Agent wallets collection
+    match /agent_wallets/{walletId} {
+      allow read: if isUserActive() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isAgent() && resource.data.userId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // Agent commission wallets collection
+    match /agent_commission_wallets/{walletId} {
+      allow read: if isUserActive() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isAgent() && resource.data.userId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // Agent transactions collection
+    match /agent_transactions/{transactionId} {
+      allow read: if isUserActive() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isAgent() || isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Wallet credit history collection
+    match /wallet_credit_history/{historyId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Lotto participations collection
+    match /lotto_participations/{participationId} {
+      allow read: if isUserActive() && (isAdmin() || isManager() || isAgent());
+      allow create: if isAgent();
+      allow update: if isAdmin() || isAgent();
+      allow delete: if false;
+    }
+
+    // Daily revenues collection
+    match /daily_revenues/{revenueId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Daily expenses collection
+    match /daily_expenses/{expenseId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Assets collection
+    match /assets/{assetId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Employees collection
+    match /employees/{employeeId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Salary payments collection
+    match /salary_payments/{paymentId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Shifts collection
+    match /shifts/{shiftId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Shift templates collection
+    match /shift_templates/{templateId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Attendance records collection
+    match /attendance_records/{recordId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Leave requests collection
+    match /leave_requests/{requestId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Payroll records collection
+    match /payroll_records/{payrollId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Payroll config collection
+    match /payroll_config/{configId} {
+      allow read: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow create: if isUserActive() && (isManager() || isAdmin()) && request.resource.data.managerId == request.auth.uid;
+      allow update: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+      allow delete: if isUserActive() && (isManager() || isAdmin()) && resource.data.managerId == request.auth.uid;
+    }
+
+    // Inventory Management - Product Categories
+    match /product_categories/{categoryId} {
+      allow read: if isUserActive() && (isManager() || isAdmin());
+      allow create, update, delete: if isUserActive() && (isManager() || isAdmin());
+    }
+
+    // Inventory Management - Suppliers
+    match /suppliers/{supplierId} {
+      allow read: if isUserActive() && (isManager() || isAdmin());
+      allow create, update, delete: if isUserActive() && (isManager() || isAdmin());
+    }
+
+    // Inventory Management - Products
+    match /products/{productId} {
+      allow read: if isUserActive() && (isManager() || isAdmin());
+      allow create, update, delete: if isUserActive() && (isManager() || isAdmin());
+    }
+
+    // Inventory Management - Stock Movements
+    match /stock_movements/{movementId} {
+      allow read: if isUserActive() && (isManager() || isAdmin());
+      allow create: if isUserActive() && (isManager() || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Inventory Management - Stock Alerts
+    match /stock_alerts/{alertId} {
+      allow read: if isUserActive() && (isManager() || isAdmin());
+      allow create: if isUserActive() && (isManager() || isAdmin());
+      allow update: if isUserActive() && (isManager() || isAdmin());
+      allow delete: if false;
+    }
+
+    // Loan Management - Borrowers
+    match /borrowers/{borrowerId} {
+      allow read: if isUserActive() && (isManager() || isAdmin());
+      allow create, update: if isUserActive() && (isManager() || isAdmin());
+      allow delete: if isUserActive() && (isManager() || isAdmin());
+    }
+
+    // Loan Management - Loans
+    match /loans/{loanId} {
+      allow read: if isUserActive() && (isManager() || isAdmin());
+      allow create, update: if isUserActive() && (isManager() || isAdmin());
+      allow delete: if isUserActive() && (isManager() || isAdmin());
+    }
+
+    // Loan Management - Loan Payments
+    match /loan_payments/{paymentId} {
+      allow read: if isUserActive() && (isManager() || isAdmin());
+      allow create: if isUserActive() && (isManager() || isAdmin());
+      allow update: if isUserActive() && (isManager() || isAdmin());
+      allow delete: if false;
+    }
+
+    // Helper functions
+    function isOwner(userId) {
+      return isUserActive() && request.auth.uid == userId;
+    }
+  }
+}
