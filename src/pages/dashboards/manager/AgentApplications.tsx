@@ -6,6 +6,7 @@ import AgentApplicationForm from '../../../components/admin/agents/AgentApplicat
 import ApplicationDetailModal from '../../../components/admin/agents/ApplicationDetailModal';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import ManagerAgentApplicationsMobile from './AgentApplicationsMobile';
 
 export default function ManagerAgentApplications() {
   const { currentUser } = useAuth();
@@ -98,7 +99,8 @@ export default function ManagerAgentApplications() {
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+    <div className="hidden lg:block min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Candidatures d'agents</h1>
@@ -291,5 +293,7 @@ export default function ManagerAgentApplications() {
         />
       )}
     </div>
+    <ManagerAgentApplicationsMobile />
+    </>
   );
 }
