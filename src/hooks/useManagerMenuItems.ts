@@ -101,53 +101,7 @@ export function useManagerMenuItems() {
         }
       ]
     },
-    {
-      icon: Trophy,
-      label: 'Lotto',
-      submenu: [
-        {
-          icon: Trophy,
-          label: 'Gestion des Lottos',
-          path: '/dashboard/manager/lotto-management'
-        },
-        {
-          icon: Clock,
-          label: 'Modèles Récurrents',
-          path: '/dashboard/manager/lotto-templates'
-        },
-        {
-          icon: Trophy,
-          label: 'Gestion des Tirages',
-          path: '/dashboard/manager/lotto-draws'
-        },
-        {
-          icon: Trophy,
-          label: 'Approbations',
-          path: '/dashboard/manager/lotto-approvals'
-        },
-        {
-          icon: ClipboardList,
-          label: 'Historique Approbations',
-          path: '/dashboard/manager/approval-history'
-        },
-        {
-          icon: Search,
-          label: 'Recherche Ticket',
-          path: '/dashboard/manager/paid-ticket-search'
-        },
-        {
-          icon: Calculator,
-          label: 'Optimisateur de Tirages',
-          path: '/dashboard/manager/draw-optimizer'
-        },
-        // Conditionnellement ajouter l'analyse des tickets
-        ...(canAccessTicketAnalysis ? [{
-          icon: BarChart,
-          label: 'Analyse des Tickets',
-          path: '/dashboard/manager/ticket-analysis'
-        }] : [])
-      ]
-    },
+
     {
       icon: Wallet,
       label: 'Finances',
